@@ -16,7 +16,6 @@ grid {
 
 row {
   display: flex;
-  flex-wrap: wrap;
 }
 
 cell {
@@ -28,6 +27,10 @@ cell[alive="true"] {
 }
 
 message {
+  border: none;
+}
+
+message-container {
   display: flex;
   color: white;
   border: solid 1px;

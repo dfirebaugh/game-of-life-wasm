@@ -44,6 +44,8 @@ type coords struct {
 	y int
 }
 
+// TODO: add canvas support
+
 // DOMNodes - contains nodes on the DOM
 type DOMNodes struct {
 	Grid         js.Value
