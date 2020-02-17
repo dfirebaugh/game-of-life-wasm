@@ -1,0 +1,21 @@
+grid {
+  display: flex;
+  border: solid black;
+  flex-wrap: wrap;
+}
+
+row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+cell {
+  background-color: black;
+}
+cell[alive="true"] {
+  background-color: red;
+}
+
+message * {
+  margin-left: 2em;
+}
