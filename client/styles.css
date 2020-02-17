@@ -1,3 +1,13 @@
+body {
+  background-color: black;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+body * {
+  width: 80vw;
+}
 grid {
   display: flex;
   border: solid black;
@@ -10,12 +20,51 @@ row {
 }
 
 cell {
-  background-color: black;
+  background-color: grey;
+  border: solid 1px !important;
 }
 cell[alive="true"] {
-  background-color: red;
+  background-color: darkred;
 }
 
-message * {
+message {
+  display: flex;
+  color: white;
+  border: solid 1px;
+  margin-bottom: 2em;
+  align-items: center;
+}
+
+btnContainer {
+  display: flex;
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+btnContainer * {
   margin-left: 2em;
+}
+
+button {
+  box-shadow: inset 0px 1px 0px 0px #f5978e;
+  background: linear-gradient(to bottom, darkred 5%, #c62d1f 100%);
+  background-color: darkred;
+  border-radius: 6px;
+  border: 1px solid #d02718;
+  display: inline-block;
+  cursor: pointer;
+  color: #ffffff;
+  font-family: Arial;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 6px 24px;
+  text-decoration: none;
+  text-shadow: 0px 1px 0px #810e05;
+}
+button:hover {
+  background: linear-gradient(to bottom, #c62d1f 5%, darkred 100%);
+  background-color: #c62d1f;
+}
+button:active {
+  position: relative;
+  top: 1px;
 }

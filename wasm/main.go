@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"strconv"
 	"strings"
 	"syscall/js"
 	"time"
@@ -12,10 +11,10 @@ import (
 
 // SIZE size of the grid
 //- i.e. the width and height of the grid
-const SIZE = 50
+const SIZE = 45
 
 // CELLSIZE size of cells in pixels
-const CELLSIZE = 10
+const CELLSIZE = 15
 
 // TICKSPEED is how fast the generations update
 const TICKSPEED = 1
@@ -23,8 +22,21 @@ const TICKSPEED = 1
 // CELLBORDERSIZE is how big the border for each cell should be
 const CELLBORDERSIZE = 1
 
+// PRINT -- should we print to the log
+const PRINT = false
+
+/*GRIDWIDTH width of the grid is determined by SIZE (row width) * the size of a Cell with an
+accomidation for border size of each cell (i.e. the left border and the right border)
+*/
+const GRIDWIDTH = SIZE*CELLSIZE + ((CELLBORDERSIZE * SIZE) * 2)
+
+// SHOWNEIGHBORS - renders neighbors to dom
+const SHOWNEIGHBORS = false
+
 type cell struct {
-	alive bool
+	alive       bool
+	neighbors   int
+	coordinates coords
 }
 
 type coords struct {
@@ -60,7 +72,7 @@ type Game struct {
 // initGame - setup game
 func (g *Game) initGame() {
 	js.Global().Set("GRID_SIZE", SIZE)
-	g.printlog = false
+	g.printlog = PRINT
 	g.speed = TICKSPEED
 
 	g.reset()
@@ -74,14 +86,15 @@ func (g *Game) reset() {
 	g.message = ""
 	g.updateCells(randomAlive)
 	g.initDOMNodes()
-	g.logger("reset!")
 	g.render()
+	g.logger("reset!")
 }
 
 func (g *Game) clearGrid() {
 
 	g.updateCells(func(c cell, xy coords) cell {
 		c.alive = false
+		g.countNeighbors(c, xy)
 		return c
 	})
 
@@ -96,7 +109,6 @@ func (g *Game) clearGrid() {
 func (g *Game) registerCallbacks() {
 	var runCb, generateCb js.Func
 	runCb = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		g.gridToJS()
 		g.togglePause()
 		// runCb.Release() // release the function if the button will not be clicked again
 		return nil
@@ -144,38 +156,7 @@ func (g *Game) logger(a ...interface{}) {
 	}
 }
 
-// toBinaryStr - flatten the cells and convert to a string of binary numbers
-// because apparently sharing values to JS of certain types is difficult
-//
-// If the pretty option is true, the return will include line endings based on the grids SIZE
-func (g *Game) toBinaryStr(pretty bool) string {
-
-	var acc []string
-	for _, row := range g.cells {
-		for _, cell := range row {
-			var bitSetVar int8
-			if cell.alive == true {
-				bitSetVar = 1
-			}
-			acc = append(acc, strconv.FormatInt(int64(bitSetVar), 2))
-		}
-	}
-
-	binaryStr := strings.Trim(strings.Join(acc[:], ""), " ")
-
-	if pretty {
-		return strings.Join(chunk(binaryStr, SIZE), "\n")
-	}
-
-	return binaryStr
-}
-
-// gridToJS sends the binary string of the current grid to a global variable in js
-func (g *Game) gridToJS() {
-	js.Global().Set("currentGrid", g.toBinaryStr(false))
-}
-
-func (g *Game) checkRules(c cell, xy coords) cell {
+func (g *Game) countNeighbors(c cell, xy coords) cell {
 	neighbors := []coords{
 		{-1, 0}, {-1, 1},
 		{1, 0}, {1, -1},
@@ -193,12 +174,16 @@ func (g *Game) checkRules(c cell, xy coords) cell {
 			}
 		}
 	}
+	c.neighbors = neighborCount
+	return c
+}
 
+func (g *Game) checkRules(c cell, xy coords) cell {
 	if c.alive {
-		if neighborCount < 2 || neighborCount > 3 {
+		if c.neighbors < 2 || c.neighbors > 3 {
 			c.alive = false
 		}
-	} else if neighborCount == 3 {
+	} else if c.neighbors == 3 {
 		c.alive = true
 	}
 	return c
@@ -228,7 +213,6 @@ func d2(seed int64) bool {
 }
 
 func (g *Game) render() {
-	g.logger(g.toBinaryStr(true))
 	g.renderMessage()
 	g.updateDOMGrid()
 }
@@ -267,22 +251,31 @@ func (g *Game) initDOMNodes() {
 
 	g.createButtons()
 
-	/*
-		width of the grid is determined by SIZE (row width) * the size of a Cell with an
-		accomidation for border size of each cell (i.e. the left border and the right border)
-	*/
-	g.dom.Grid.Set("style", fmt.Sprintf("width: %dpx", SIZE*CELLSIZE+((CELLBORDERSIZE*SIZE)*2)))
+	g.dom.Grid.Set("style", fmt.Sprintf("width: %dpx", GRIDWIDTH))
 
 	g.dom.Grid.Set("innerHTML", "") // reset childNodes
 
-	for x, row := range g.cells {
+	for y, row := range g.cells {
 		rowNode := document.Call("createElement", "row")
-		for y, cell := range row {
+		for x, cell := range row {
+			// declaring new variables to break reference to iterator
+			cellX := x
+			cellY := y
+
+			// handle a cell click
+			cellClickCb := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+				g.logger("cell clicked: ", cellX, cellY, g.cells[cellY][cellX].alive)
+				g.cells[cellY][cellX].alive = !g.cells[cellY][cellX].alive
+				g.render()
+				return nil
+			})
+
 			cellNode := document.Call("createElement", "cell")
 			cellNode.Call("setAttribute", "alive", cell.alive)
 			cellNode.Set("id", fmt.Sprintf("cell-%d-%d", x, y))
 			// TODO: move away from pixels and use something more dynamic
 			cellNode.Set("style", fmt.Sprintf("width: %dpx; height: %dpx; border: solid %dpx", CELLSIZE, CELLSIZE, CELLBORDERSIZE))
+			cellNode.Call("addEventListener", "click", cellClickCb)
 			rowNode.Call("appendChild", cellNode)
 		}
 		g.dom.Grid.Call("appendChild", rowNode)
@@ -310,10 +303,13 @@ func (g *Game) updateDOMGrid() {
 	document := js.Global().Get("document")
 
 	// TODO: this would be better if we only change what needs to be changed
-	for x, row := range g.cells {
-		for y, cell := range row {
+	for y, row := range g.cells {
+		for x, cell := range row {
 			domCell := document.Call("getElementById", fmt.Sprintf("cell-%d-%d", x, y))
 			domCell.Call("setAttribute", "alive", cell.alive)
+			if SHOWNEIGHBORS {
+				domCell.Set("innerHTML", cell.neighbors)
+			}
 		}
 	}
 }
@@ -327,6 +323,7 @@ func (g *Game) renderMessage() {
 func (g *Game) generate() {
 	tmpCells := g.cells
 
+	g.updateCells(g.countNeighbors)
 	g.updateCells(g.checkRules)
 	if reflect.DeepEqual(tmpCells, g.cells) {
 		g.message = "graph did not change - pausing..."
