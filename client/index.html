@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Game of Life - Go wasm</title>
+  </head>
+
+  <body>
+    <script type="module" src="index.js"></script>
+
+    <button id="resetBtn">Reset</button>
+    <button id="runBtn">Play</button>
+    <button id="generateBtn">Generation</button>
+    <message id="messageContainer">
+      <generation-label id="generation-label">Generation: </generation-label>
+      <generation id="generation">0</generation>
+      <message id="message"></message>
+    </message>
+
+    <p>
+      <grid id="gridContainer"></grid>
+    </p>
+  </body>
+</html>
