@@ -7,14 +7,8 @@ import (
 
 func main() {
 	g := gol.New()
-	d := dom.New(g)
+	var d gol.Renderer = dom.New(&g)
 
-	g.RenderCb = func() {
-		d.Render()
-	}
-	g.ResetCb = func() {
-		d.Reset()
-	}
+	g.Init(d)
 
-	g.Init()
 }
