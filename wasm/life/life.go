@@ -72,7 +72,7 @@ func (g Game) render() {
 }
 
 func (g *Game) Reset() {
-	g.IsPaused = true
+	g.IsPaused = false
 	g.Generation = 0
 	g.Message = ""
 	g.updateCells(randomAlive)

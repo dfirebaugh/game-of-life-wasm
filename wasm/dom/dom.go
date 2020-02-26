@@ -31,6 +31,22 @@ var document js.Value
 // New returns a new Nodes instance
 func New(game *gol.Game) Nodes {
 	document = js.Global().Get("document")
+
+	btnContainer := document.Call("createElement", "btnContainer")
+	btnContainer.Set("id", "btnContainer")
+
+	messageContainer := document.Call("createElement", "message-container")
+	messageContainer.Set("id", "messageContainer")
+
+	gridContainer := document.Call("createElement", "gridContainer")
+	gridContainer.Set("id", "gridContainer")
+
+	body := document.Call("getElementById", "body")
+
+	body.Call("appendChild", btnContainer)
+	body.Call("appendChild", messageContainer)
+	body.Call("appendChild", gridContainer)
+
 	n := &Nodes{}
 
 	g = game
